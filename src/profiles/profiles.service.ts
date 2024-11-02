@@ -22,19 +22,68 @@ export class ProfilesService {
     return result;
   }
 
-  async findId(chatId: string) {
-    const telegramUser = await this.prisma.telegramUser.findUniqueOrThrow({
-      where: { chatId },
+  async findBoth(chatId: string, profileId: string) {
+    // Find the TelegramUser by chatId to get the user's ID
+    const telegramUser = await this.prisma.telegramUser.findUnique({
+      where: {
+        chatId: chatId,
+      },
       select: {
-        chatId: true,
-        profile: {
+        id: true, // Only select the ID field
+      },
+    });
+
+    if (!telegramUser) {
+      throw new Error('Telegram user not found');
+    }
+
+    // Now fetch the tickets based on both the profileId and the TelegramUserId
+    const result = await this.prisma.ticket.findMany({
+      where: {
+        profileId: profileId,
+        TelegramUserId: telegramUser.id, // Use the fetched ID
+      },
+    });
+
+    return result;
+  }
+  async findId(chatId: string) {
+    const now = new Date(); // Current date and time
+
+    const result = await this.prisma.telegramUser.findUnique({
+      where: {
+        chatId: chatId, // Find the TelegramUser using chatId
+      },
+      include: {
+        profiles: {
+          orderBy: {
+            profile: {
+              startDate: 'desc',
+            },
+          },
+          where: {
+            profile: {
+              startDate: {
+                lt: now, // Start date is less than (before) today
+              },
+              endDate: {
+                gt: now, // End date is greater than (after) today
+              },
+            },
+          },
           include: {
-            ticket: true,
+            /* profile: {
+              include: {
+                ticket: true, // Include the tickets related to the profile
+              },
+            }, */
+            profile: true,
           },
         },
       },
     });
-    return telegramUser;
+
+    return result;
   }
 
   findActiveGames() {
@@ -74,6 +123,38 @@ export class ProfilesService {
     return result;
   }
 
+
+  // Function to get winner tickets by profileId
+  async findWinnersByProfileId(profileId: string) {
+    return this.prisma.winner.findMany({
+      where: {
+        profileId: profileId, // Filter by the given profileId
+      },
+      include: {
+        ticket: {
+          include: {
+            telegramUser: {
+              select: {
+                id: true,
+                chatId: true,
+                username: true,
+                // You can add other fields from TelegramUser you want to return
+              },
+            },
+            profile: {
+              select: {
+                id: true,
+                gameType: true,
+                gameNumber: true,
+                gamePrice: true,
+                endDate: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
   findOne(id: number) {
     return `This action returns a #${id} profile`;
   }

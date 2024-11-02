@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+
+// prisma/schema.prisma
+model TelegramUser {
+   id          String    @id @default(cuid()) 
+  chatId     String     @unique
+  username   String?
+  ticket   Ticket []
+  watingBalance WatingBalance[]
+   profiles       TelegramUserProfile[] // Updated to reflect many-to-many relationship
+  balance Balance?
+ user  User ?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt @default(now()) 
+}
+
+model User {
+   id          String    @id @default(cuid())
+  first_name  String   
+  last_name String 
+  startParam String?
+  telegramUser TelegramUser? @relation(fields: [TelegramUserId], references: [id])
+  TelegramUserId String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt @default(now()) 
+}
+
+
+
+model Profile {
+  id              String   @id @default(cuid()) // Default primary key
+  gameType        String
+  imageNum        Int
+  startDate       DateTime
+  endDate         DateTime
+  gameNumber      Int
+  gamePrice       Float
+  gameDescription String?
+  ticket Ticket []
+   winners Winner[]
+telegramUsers   TelegramUserProfile[] // Updated to reflect many-to-many relationship
+  // Relationships
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Ticket {
+  id           String   @id @default(cuid()) // Default primary key
+
+  number      Int
+
+  purchaseDate DateTime @default(now())
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  winner            Winner? 
+  // Relationships
+  telegramUser   TelegramUser    @relation(fields: [TelegramUserId], references: [id])
+  TelegramUserId    String
+  profile   Profile @relation(fields: [profileId], references: [id])
+  profileId   String
+}
+
+
+model Winner {
+  id                String             @id @default(cuid()) // Default primary key
+  ticketId         String              @unique // Ensuring a ticket can only be a winner once
+  profileId        String              // Foreign key reference to Profile
+  level       Int      // Level of the winning (1, 2, or 3)
+  // Relationships
+  ticket           Ticket              @relation(fields: [ticketId], references: [id])
+  profile          Profile             @relation(fields: [profileId], references: [id])
+  
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+}
+
+model Balance {
+  id        String   @id @default(cuid()) // Default primary key
+  balance   Float
+  avelible   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  // Relationship
+   telegramUser   TelegramUser    @relation(fields: [telegramUserId], references: [id])
+  telegramUserId    String  @unique
+}
+
+
+model WatingBalance {
+  id        String   @id @default(cuid()) // Default primary key
+  balance   Float
+  accountNumber String
+  bankName String
+  avelible   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  // Relationship
+   telegramUser   TelegramUser    @relation(fields: [telegramUserId], references: [id])
+  telegramUserId    String  
+}
+
+
+
+// New model to create the many-to-many relationship between TelegramUser and Profile
+model TelegramUserProfile {
+  id             String           @id @default(cuid())
+  telegramUser   TelegramUser      @relation(fields: [telegramUserId], references: [id])
+  telegramUserId String
+  profile        Profile           @relation(fields: [profileId], references: [id])
+  profileId      String
+  
+  // Additional fields (if needed) or indexes
+  @@unique([telegramUserId, profileId]) // Ensure unique combinations of TelegramUser and Profile
+}

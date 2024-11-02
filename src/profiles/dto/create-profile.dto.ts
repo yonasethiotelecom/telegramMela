@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsOptional, IsDate, IsNumber } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateProfileDto {
   @IsString()

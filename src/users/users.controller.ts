@@ -10,9 +10,8 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ChapaService } from 'chapa-nestjs';
+import { ChapaService, VerifyOptions } from 'chapa-nestjs';
 import { CreateAmountDto } from './dto/amount-user.dto';
-
 @Controller('users')
 export class UsersController {
   constructor(
@@ -27,7 +26,7 @@ export class UsersController {
   }
 
   @Post('amount')
-  addAmount(@Body() createAmountDto: CreateAmountDto) {
+  addAmount(@Body() createAmountDto: { chatId: string; amount: number }) {
     console.log(createAmountDto);
     return this.usersService.createAmount(createAmountDto);
   }
@@ -50,7 +49,7 @@ export class UsersController {
       currency: 'ETB',
       amount: '200',
       tx_ref: tx_ref,
-      callback_url: 'https://example.com/',
+      callback_url: `https://7f86762d36bfdf57e692f3985148318f.serveo.net/users/${tx_ref}`,
       return_url: 'https://example.com/',
       customization: {
         title: 'Test Title',
@@ -58,6 +57,15 @@ export class UsersController {
       },
     });
     return response;
+  }
+
+  @Get('verify/:chatId/:tx_ref')
+  verify(
+    @Param('chatId') chatId: string,
+    @Param('tx_ref') tx_ref: string, // Changed type to string for tx_ref
+  ) {
+    const verifyOptions: VerifyOptions = { tx_ref }; // Construct VerifyOptions with tx_ref
+    return this.usersService.verify(chatId, verifyOptions);
   }
 
   @Get(':id')

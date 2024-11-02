@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { TacketsService } from './tackets.service';
 import { CreateTacketDto } from './dto/create-tacket.dto';
 import { UpdateTacketDto } from './dto/update-tacket.dto';
@@ -9,7 +17,7 @@ export class TacketsController {
 
   @Post()
   create(@Body() createTacketDto: CreateTacketDto) {
-    return this.tacketsService.create(createTacketDto);
+    return this.tacketsService.createTicket(createTacketDto);
   }
 
   @Get()
@@ -17,11 +25,14 @@ export class TacketsController {
     return this.tacketsService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tacketsService.findOne(+id);
+  @Get(':profileId')
+  findOne(@Param('profileId') profileId: string) {
+    return this.tacketsService.findBy(profileId);
   }
 
+ 
+
+  
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTacketDto: UpdateTacketDto) {
     return this.tacketsService.update(+id, updateTacketDto);

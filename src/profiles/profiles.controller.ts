@@ -17,7 +17,7 @@ export class ProfilesController {
 
   @Post()
   create(@Body() createProfileDto: CreateProfileDto) {
-    console.log(createProfileDto)
+    console.log(createProfileDto);
     return this.profilesService.createProfile(createProfileDto);
   }
 
@@ -25,10 +25,14 @@ export class ProfilesController {
   ActiveGames() {
     return this.profilesService.findActiveGames();
   }
-  
-  @Get('endedGames') 
+
+  @Get('endedGames')
   EndedGames() {
     return this.profilesService.findEndedGames();
+  }
+  @Get('winners/:profileId')
+  Winners(@Param('profileId') profileId: string) {
+    return this.profilesService.findWinnersByProfileId(profileId);
   }
 
   @Get()
@@ -36,7 +40,14 @@ export class ProfilesController {
     return this.profilesService.findAll();
   }
 
-
+  @Get('both/:chatId/:profileId')
+  findBoth(
+    @Param('chatId') chatId: string,
+    @Param('profileId') profileId: string,
+  ) {
+    console.log(chatId, profileId);
+    return this.profilesService.findBoth(chatId, profileId);
+  }
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.profilesService.findId(id);

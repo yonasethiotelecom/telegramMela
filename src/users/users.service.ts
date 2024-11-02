@@ -4,6 +4,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAmountDto } from './dto/amount-user.dto';
 import { ChapaService } from 'chapa-nestjs';
+import { VerifyOptions } from './dto/verify.interface';
 
 @Injectable()
 export class UsersService {
@@ -73,7 +74,7 @@ export class UsersService {
     }
   }
 
-  async createAmount({ chatId, amount }: CreateAmountDto) {
+  async createAmount({ chatId, amount }: { chatId: string; amount: number }) {
     const tx_ref = await this.chapaService.generateTransactionReference();
     const info = await this.prisma.telegramUser.findUnique({
       where: { chatId },
@@ -90,7 +91,7 @@ export class UsersService {
         currency: 'ETB',
         amount: String(amount),
         tx_ref: tx_ref,
-        callback_url: 'https://example.com/',
+        callback_url: `https://bace464d1ce01aa21327e95b8b352c53.serveo.net/users/verify/${chatId}/${tx_ref}`,
         return_url: 'https://example.com/',
         customization: {
           title: 'Test Title',
@@ -98,35 +99,6 @@ export class UsersService {
         },
       });
       console.log(response);
-      if (response.status == 'success') {
-        // Find the TelegramUser by chatId
-        const telegramUser = await this.prisma.telegramUser.findUnique({
-          where: { chatId },
-        });
-
-        if (!telegramUser) {
-          throw new Error('TelegramUser not found');
-        }
-
-        // Upsert the balance: create a new one if it doesn't exist, or update if it does
-        await this.prisma.balance.upsert({
-          where: {
-            // We assume that a balance is unique to a user (telegramUserId)
-            telegramUserId: telegramUser.id,
-          },
-          create: {
-            balance: amount, // Set the initial balance
-            telegramUser: {
-              connect: { id: telegramUser.id }, // Connect the balance to the TelegramUser
-            },
-          },
-          update: {
-            balance: {
-              increment: amount, // Add the new amount to the existing balance
-            },
-          },
-        });
-      }
 
       return response;
     } else if (info) {
@@ -137,7 +109,7 @@ export class UsersService {
         currency: 'ETB',
         amount: String(amount),
         tx_ref: tx_ref,
-        callback_url: 'https://example.com/',
+        callback_url: `https://bace464d1ce01aa21327e95b8b352c53.serveo.net/users/verify/${tx_ref}`,
         return_url: 'https://example.com/',
         customization: {
           title: 'Test Title',
@@ -145,40 +117,47 @@ export class UsersService {
         },
       });
 
-      if (response.status == 'success') {
-        // Find the TelegramUser by chatId
-        const telegramUser = await this.prisma.telegramUser.findUnique({
-          where: { chatId },
-        });
-
-        if (!telegramUser) {
-          throw new Error('TelegramUser not found');
-        }
-
-        // Upsert the balance: create a new one if it doesn't exist, or update if it does
-        await this.prisma.balance.upsert({
-          where: {
-            // We assume that a balance is unique to a user (telegramUserId)
-            telegramUserId: telegramUser.id,
-          },
-          create: {
-            balance: amount, // Set the initial balance
-            telegramUser: {
-              connect: { id: telegramUser.id }, // Connect the balance to the TelegramUser
-            },
-          },
-          update: {
-            balance: {
-              increment: amount, // Add the new amount to the existing balance
-            }, // Update the existing balance
-          },
-        });
-      }
       return response;
-    } else {
-      return null;
     }
   }
+
+  async verify(chatId: string, verifyOptions: VerifyOptions) {
+    const response: any = await this.chapaService.verify(verifyOptions);
+    console.log('VERFY' + JSON.stringify(response));
+    console.log('response.amount' + response.data.amount);
+
+    if (response.status == 'success') {
+      // Find the TelegramUser by chatId
+      const telegramUser = await this.prisma.telegramUser.findUnique({
+        where: { chatId },
+      });
+
+      if (!telegramUser) {
+        throw new Error('TelegramUser not found');
+      }
+
+      // Upsert the balance: create a new one if it doesn't exist, or update if it does
+      await this.prisma.balance.upsert({
+        where: {
+          // We assume that a balance is unique to a user (telegramUserId)
+          telegramUserId: telegramUser.id,
+        },
+        create: {
+          balance: +response.data.amount, // Set the initial balance
+          telegramUser: {
+            connect: { id: telegramUser.id }, // Connect the balance to the TelegramUser
+          },
+        },
+        update: {
+          balance: {
+            increment: +response.data.amount, // Add the new amount to the existing balance
+          },
+        },
+      });
+    }
+    return response;
+  }
+
   async createUser({ chatId, ...updatedObject }: CreateUserDto) {
     const telegramUser = await this.prisma.telegramUser.findUnique({
       where: { chatId },
